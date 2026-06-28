@@ -27,7 +27,7 @@
 ## Pipeline architecture
 
 <p align="center">
-  <img src="results/readme_figures/architecture.svg" alt="Pipeline architecture" width="100%">
+  <img width="3438" height="875" alt="Pipeline architecture" src="https://github.com/user-attachments/assets/5b7e57b2-3986-464e-a5d8-43e953e45cf2" />
 </p>
 
 The pipeline stitches six stages into a single end-to-end run, with every
@@ -66,78 +66,16 @@ dimensionality-reduction step.
 
 ## Visual evidence
 
-### 1. Betti curves — original vs PCA-reduced (one window)
-
 <p align="center">
-  <img src="results/figures/betti_curves.png" alt="Betti curves" width="90%">
-</p>
-
-β₀ curves overlap perfectly (PCA preserves connected components). β₁ curves
-diverge — the reduced cloud has fewer loops because PCA's linear projection
-collapses the plane perpendicular to the smallest principal axis, "unfolding"
-loops that lived in that plane.
-
-### 2. Persistence diagrams — original vs PCA-reduced
-
-<p align="center">
-  <img src="results/figures/persistence_diagrams.png" alt="Persistence diagrams" width="90%">
-</p>
-
-Each dot is a topological feature (blue = H₀, orange = H₁). Dots far from
-the diagonal are *persistent* (signal); dots near the diagonal are noise.
-The reduced diagram has noticeably fewer persistent H₁ dots — the visual
-signature of β₁ loss.
-
-### 3. Anomaly timeline — detector output vs ground truth
-
-<p align="center">
-  <img src="results/figures/anomaly_timeline.png" alt="Anomaly timeline" width="90%">
-</p>
-
-Blue line: per-window anomaly score (rank-averaged ensemble of robust-z +
-LOF + Wasserstein). Red dots: windows flagged as anomalous. Green bands:
-true anomaly regions injected into the synthetic data.
-
-### 4. Runtime scaling
-
-<p align="center">
-  <img src="results/readme_figures/scaling.svg" alt="Scaling" width="100%">
-</p>
-
-**Left:** wall-clock runtime scales linearly with the number of windows
-(each window's VR persistence dominates and is independent of others).
-**Right:** β₀ is preserved 100% across all sizes; β₁ is destroyed 100%
-under PCA — the qualitative finding is stable across data sizes.
-
-### 5. Reduction-method comparison
-
-<p align="center">
-  <img src="results/readme_figures/reduction_compare.svg" alt="Reduction comparison" width="100%">
-</p>
-
-Three panels compare `none` / `pca` / `umap` on the same data:
-
-- **Runtime**: UMAP is 18× slower than PCA with no topological advantage.
-- **β preservation**: only `none` preserves both β₀ and β₁. PCA and UMAP
-  both preserve β₀ but destroy β₁.
-- **Bottleneck distance**: lower is better. `none` = 0 (perfect), PCA = 0.15,
-  UMAP = 0.55 (worst — UMAP's non-linear distortion is larger than PCA's
-  linear one on this dataset).
-
-### 6. Per-stage runtime share
-
-<p align="center">
-  <img src="results/readme_figures/timing_pie.svg" alt="Timing pie" width="80%">
-</p>
-
-VR persistence (original + reduced) plus feature extraction dominate
-runtime. Takens embedding and anomaly detection are essentially free
-(<1% combined). All measurements use `time.perf_counter_ns()`.
-
-### 7. Per-stage timing breakdown (bar chart)
-
-<p align="center">
-  <img src="results/figures/timing_breakdown.png" alt="Timing breakdown" width="90%">
+  <img width="3935" height="1235" alt="Timing breakdown" src="https://github.com/user-attachments/assets/9eab7112-3147-4ee6-9a1d-05f98b9fff28" />
+.
+ .
+  .
+  <img width="3335" height="1235" alt="scaling" src="https://github.com/user-attachments/assets/d64e5e4b-71d2-4717-a9d5-f8cee3845bd7" />
+.
+ .
+  .
+  <img width="2269" height="1835" alt="timing_pie" src="https://github.com/user-attachments/assets/7e805c51-4ec5-4fe5-937a-c78033ee40b3" />
 </p>
 
 ---
