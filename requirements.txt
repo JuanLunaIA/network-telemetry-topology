@@ -1,0 +1,15 @@
+# Requirements — see pyproject.toml for the canonical dependency list.
+# This file is provided for convenience (pip install -r requirements.txt).
+
+numpy>=1.22
+scipy>=1.8
+scikit-learn>=1.1
+giotto-tda>=0.6.0
+matplotlib>=3.5
+
+# Optional but recommended for the UMAP reduction path:
+# umap-learn>=0.5.3
+
+# Development:
+# pytest>=7.0
+# pytest-cov>=4.0

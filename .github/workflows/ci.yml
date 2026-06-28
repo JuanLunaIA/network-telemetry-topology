@@ -1,0 +1,125 @@
+# Continuous Integration for topo-net-anomaly
+#
+# Runs on every push to main/master and on every pull request, across
+# Python 3.10 / 3.11 / 3.12 on ubuntu-latest. The job:
+#   1. checks out the code,
+#   2. installs Python + uv (fast resolver),
+#   3. installs the package in editable mode with the [dev] extras,
+#   4. caches the giotto-tda wheel build (slow on first run),
+#   5. lints with pyflakes,
+#   6. runs the full pytest suite (113 tests, ~3 s),
+#   7. runs the benchmark script (smoke test, not a perf gate),
+#   8. uploads the test + benchmark artifacts.
+#
+# The workflow is intentionally framework-light: no tox, no poetry, no
+# conda — just pip + pytest. This keeps it reproducible on a fresh
+# developer machine.
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same PR/branch to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+
+      - name: Upgrade pip & install build deps
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install pyflakes pytest
+
+      - name: Install package (editable, with dev extras)
+        run: |
+          pip install -e ".[dev]"
+          # Optional UMAP path is exercised by the tests — install a
+          # version compatible with scikit-learn 1.3.2 (the version pinned
+          # by giotto-tda's wheel metadata).
+          pip install "umap-learn==0.5.5" || true
+
+      - name: Lint with pyflakes
+        run: |
+          # Fail the job if pyflakes reports any issue.
+          pyflakes src/topo_anomaly/ tests/ scripts/ || {
+            echo "::error::pyflakes found issues; see log above";
+            exit 1;
+          }
+
+      - name: Run pytest suite
+        env:
+          PYTHONHASHSEED: "0"
+          MPLBACKEND: Agg
+        run: |
+          pytest tests/ -v --tb=short --color=yes
+
+      - name: Smoke-run the benchmark script
+        env:
+          MPLBACKEND: Agg
+        run: |
+          python scripts/run_benchmarks.py --out results/benchmarks
+
+      - name: Smoke-run the end-to-end pipeline
+        env:
+          MPLBACKEND: Agg
+        run: |
+          python scripts/run_pipeline.py --n-samples 512 --out results/runs/ci
+
+      - name: Generate figures
+        env:
+          MPLBACKEND: Agg
+        run: |
+          python scripts/make_figures.py --out results/figures --n-samples 512
+
+      - name: Upload test & benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-py${{ matrix.python-version }}
+          path: |
+            results/
+            .pytest_cache/
+          retention-days: 14
+
+  # Aggregate gate: passes only if every matrix entry passed.
+  # Use this as the required status check on the branch-protection rule.
+  status-check:
+    name: Status check (all green required)
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Fail if any test job failed
+        if: ${{ needs.test.result != 'success' }}
+        run: |
+          echo "::error::One or more test jobs failed — see logs."
+          exit 1
+      - name: All green
+        run: echo "✅ All test jobs passed."
